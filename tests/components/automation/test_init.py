@@ -9,6 +9,7 @@ from homeassistant.components.automation import DOMAIN
 from homeassistant.const import (
     ATTR_ENTITY_ID,
     ATTR_NAME,
+    EVENT_AUTOMATION_RELOADED,
     EVENT_AUTOMATION_TRIGGERED,
     EVENT_HOMEASSISTANT_STARTED,
     STATE_OFF,
@@ -148,7 +149,7 @@ async def test_service_specify_entity_id(hass, calls):
 
     hass.bus.async_fire("test_event")
     await hass.async_block_till_done()
-    assert 1 == len(calls)
+    assert len(calls) == 1
     assert ["hello.world"] == calls[0].data.get(ATTR_ENTITY_ID)
 
 
@@ -170,7 +171,7 @@ async def test_service_specify_entity_id_list(hass, calls):
 
     hass.bus.async_fire("test_event")
     await hass.async_block_till_done()
-    assert 1 == len(calls)
+    assert len(calls) == 1
     assert ["hello.world", "hello.world2"] == calls[0].data.get(ATTR_ENTITY_ID)
 
 
@@ -192,10 +193,10 @@ async def test_two_triggers(hass, calls):
 
     hass.bus.async_fire("test_event")
     await hass.async_block_till_done()
-    assert 1 == len(calls)
+    assert len(calls) == 1
     hass.states.async_set("test.entity", "hello")
     await hass.async_block_till_done()
-    assert 2 == len(calls)
+    assert len(calls) == 2
 
 
 async def test_trigger_service_ignoring_condition(hass, calls):
@@ -268,17 +269,17 @@ async def test_two_conditions_with_and(hass, calls):
     hass.states.async_set(entity_id, 100)
     hass.bus.async_fire("test_event")
     await hass.async_block_till_done()
-    assert 1 == len(calls)
+    assert len(calls) == 1
 
     hass.states.async_set(entity_id, 101)
     hass.bus.async_fire("test_event")
     await hass.async_block_till_done()
-    assert 1 == len(calls)
+    assert len(calls) == 1
 
     hass.states.async_set(entity_id, 151)
     hass.bus.async_fire("test_event")
     await hass.async_block_till_done()
-    assert 1 == len(calls)
+    assert len(calls) == 1
 
 
 async def test_automation_list_setting(hass, calls):
@@ -302,11 +303,11 @@ async def test_automation_list_setting(hass, calls):
 
     hass.bus.async_fire("test_event")
     await hass.async_block_till_done()
-    assert 1 == len(calls)
+    assert len(calls) == 1
 
     hass.bus.async_fire("test_event_2")
     await hass.async_block_till_done()
-    assert 2 == len(calls)
+    assert len(calls) == 2
 
 
 async def test_automation_calling_two_actions(hass, calls):
@@ -483,6 +484,11 @@ async def test_reload_config_service(hass, calls, hass_admin_user, hass_read_onl
     assert len(calls) == 1
     assert calls[0].data.get("event") == "test_event"
 
+    test_reload_event = []
+    hass.bus.async_listen(
+        EVENT_AUTOMATION_RELOADED, lambda event: test_reload_event.append(event)
+    )
+
     with patch(
         "homeassistant.config.load_yaml_config_file",
         autospec=True,
@@ -504,6 +510,8 @@ async def test_reload_config_service(hass, calls, hass_admin_user, hass_read_onl
         await hass.async_block_till_done()
         # De-flake ?!
         await hass.async_block_till_done()
+
+    assert len(test_reload_event) == 1
 
     assert hass.states.get("automation.hello") is None
     assert hass.states.get("automation.bye") is not None
