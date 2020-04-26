@@ -178,8 +178,8 @@ CONF_XY = "xy"
 CONF_ZONE = "zone"
 
 # #### EVENTS ####
-EVENT_AUTOMATION_RELOADED = "automation_reloaded"
 EVENT_AUTOMATION_TRIGGERED = "automation_triggered"
+EVENT_AUTOMATION_UPDATED = "automation_updated"
 EVENT_CALL_SERVICE = "call_service"
 EVENT_COMPONENT_LOADED = "component_loaded"
 EVENT_CORE_CONFIG_UPDATE = "core_config_updated"

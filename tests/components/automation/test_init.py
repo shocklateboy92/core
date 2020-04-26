@@ -9,8 +9,8 @@ from homeassistant.components.automation import DOMAIN
 from homeassistant.const import (
     ATTR_ENTITY_ID,
     ATTR_NAME,
-    EVENT_AUTOMATION_RELOADED,
     EVENT_AUTOMATION_TRIGGERED,
+    EVENT_AUTOMATION_UPDATED,
     EVENT_HOMEASSISTANT_STARTED,
     STATE_OFF,
     STATE_ON,
@@ -484,9 +484,9 @@ async def test_reload_config_service(hass, calls, hass_admin_user, hass_read_onl
     assert len(calls) == 1
     assert calls[0].data.get("event") == "test_event"
 
-    test_reload_event = []
+    test_updated_event = []
     hass.bus.async_listen(
-        EVENT_AUTOMATION_RELOADED, lambda event: test_reload_event.append(event)
+        EVENT_AUTOMATION_UPDATED, lambda event: test_updated_event.append(event)
     )
 
     with patch(
@@ -511,7 +511,7 @@ async def test_reload_config_service(hass, calls, hass_admin_user, hass_read_onl
         # De-flake ?!
         await hass.async_block_till_done()
 
-    assert len(test_reload_event) == 1
+    assert len(test_updated_event) == 1
 
     assert hass.states.get("automation.hello") is None
     assert hass.states.get("automation.bye") is not None
