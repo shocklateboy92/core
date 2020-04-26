@@ -43,6 +43,8 @@ DEFAULT_RADIUS = 100
 ENTITY_ID_FORMAT = "zone.{}"
 ENTITY_ID_HOME = ENTITY_ID_FORMAT.format(HOME_ZONE)
 
+EVENT_ZONE_UPDATED = "zone_updated"
+
 ICON_HOME = "mdi:home"
 ICON_IMPORT = "mdi:import"
 
@@ -207,13 +209,12 @@ async def async_setup(hass: HomeAssistant, config: Dict) -> bool:
 
     async def _collection_changed(change_type: str, item_id: str, config: Dict) -> None:
         """Handle a collection change: clean up entity registry on removals."""
-        if change_type != collection.CHANGE_REMOVED:
-            return
-
-        ent_reg = await entity_registry.async_get_registry(hass)
-        ent_reg.async_remove(
-            cast(str, ent_reg.async_get_entity_id(DOMAIN, DOMAIN, item_id))
-        )
+        if change_type == collection.CHANGE_REMOVED:
+            ent_reg = await entity_registry.async_get_registry(hass)
+            ent_reg.async_remove(
+                cast(str, ent_reg.async_get_entity_id(DOMAIN, DOMAIN, item_id))
+            )
+        hass.bus.async_fire(EVENT_ZONE_UPDATED)
 
     storage_collection.async_add_listener(_collection_changed)
 
@@ -223,6 +224,7 @@ async def async_setup(hass: HomeAssistant, config: Dict) -> bool:
         if conf is None:
             return
         await yaml_collection.async_load(conf[DOMAIN])
+        hass.bus.async_fire(EVENT_ZONE_UPDATED, context=service_call.context)
 
     service.async_register_admin_service(
         hass,
@@ -239,9 +241,10 @@ async def async_setup(hass: HomeAssistant, config: Dict) -> bool:
     home_zone.entity_id = ENTITY_ID_HOME
     await component.async_add_entities([home_zone])
 
-    async def core_config_updated(_: Event) -> None:
+    async def core_config_updated(event: Event) -> None:
         """Handle core config updated."""
         await home_zone.async_update_config(_home_conf(hass))
+        hass.bus.async_fire(EVENT_ZONE_UPDATED, context=event.context)
 
     hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, core_config_updated)
 

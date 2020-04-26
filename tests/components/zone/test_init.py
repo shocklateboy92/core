@@ -4,7 +4,7 @@ import pytest
 
 from homeassistant import setup
 from homeassistant.components import zone
-from homeassistant.components.zone import DOMAIN
+from homeassistant.components.zone import DOMAIN, EVENT_ZONE_UPDATED
 from homeassistant.const import (
     ATTR_EDITABLE,
     ATTR_FRIENDLY_NAME,
@@ -143,7 +143,7 @@ async def test_active_zone_skips_passive_zones_2(hass):
     )
     await hass.async_block_till_done()
     active = zone.async_active_zone(hass, 32.880700, -117.237561)
-    assert "zone.active_zone" == active.entity_id
+    assert active.entity_id == "zone.active_zone"
 
 
 async def test_active_zone_prefers_smaller_zone_if_same_distance(hass):
@@ -172,7 +172,7 @@ async def test_active_zone_prefers_smaller_zone_if_same_distance(hass):
     )
 
     active = zone.async_active_zone(hass, latitude, longitude)
-    assert "zone.small_zone" == active.entity_id
+    assert active.entity_id == "zone.small_zone"
 
 
 async def test_active_zone_prefers_smaller_zone_if_same_distance_2(hass):
@@ -195,7 +195,7 @@ async def test_active_zone_prefers_smaller_zone_if_same_distance_2(hass):
     )
 
     active = zone.async_active_zone(hass, latitude, longitude)
-    assert "zone.smallest_zone" == active.entity_id
+    assert active.entity_id == "zone.smallest_zone"
 
 
 async def test_in_zone_works_for_passive_zones(hass):
@@ -227,6 +227,11 @@ async def test_core_config_update(hass):
 
     home = hass.states.get("zone.home")
 
+    test_updated_event = []
+    hass.bus.async_listen(
+        EVENT_ZONE_UPDATED, lambda event: test_updated_event.append(event)
+    )
+
     await hass.config.async_update(
         location_name="Updated Name", latitude=10, longitude=20
     )
@@ -234,6 +239,7 @@ async def test_core_config_update(hass):
 
     home_updated = hass.states.get("zone.home")
 
+    assert len(test_updated_event) == 1
     assert home is not home_updated
     assert home_updated.name == "Updated Name"
     assert home_updated.attributes["latitude"] == 10
@@ -244,6 +250,11 @@ async def test_reload(hass, hass_admin_user, hass_read_only_user):
     """Test reload service."""
     count_start = len(hass.states.async_entity_ids())
     ent_reg = await entity_registry.async_get_registry(hass)
+
+    test_updated_event = []
+    hass.bus.async_listen(
+        EVENT_ZONE_UPDATED, lambda event: test_updated_event.append(event)
+    )
 
     assert await setup.async_setup_component(
         hass,
@@ -270,6 +281,7 @@ async def test_reload(hass, hass_admin_user, hass_read_only_user):
     assert state_2.attributes["longitude"] == 4
     assert state_3 is None
     assert len(ent_reg.entities) == 0
+    assert len(test_updated_event) == 0
 
     with patch(
         "homeassistant.config.load_yaml_config_file",
@@ -295,6 +307,8 @@ async def test_reload(hass, hass_admin_user, hass_read_only_user):
             context=Context(user_id=hass_admin_user.id),
         )
         await hass.async_block_till_done()
+
+    assert len(test_updated_event) == 1
 
     assert count_start + 3 == len(hass.states.async_entity_ids())
 
@@ -370,6 +384,11 @@ async def test_ws_delete(hass, hass_ws_client, storage_setup):
     assert state is not None
     assert ent_reg.async_get_entity_id(DOMAIN, DOMAIN, input_id) is not None
 
+    test_updated_event = []
+    hass.bus.async_listen(
+        EVENT_ZONE_UPDATED, lambda event: test_updated_event.append(event)
+    )
+
     client = await hass_ws_client(hass)
 
     await client.send_json(
@@ -377,6 +396,8 @@ async def test_ws_delete(hass, hass_ws_client, storage_setup):
     )
     resp = await client.receive_json()
     assert resp["success"]
+
+    assert len(test_updated_event) == 1
 
     state = hass.states.get(input_entity_id)
     assert state is None
@@ -407,6 +428,11 @@ async def test_update(hass, hass_ws_client, storage_setup):
     assert state.attributes["longitude"] == 2
     assert ent_reg.async_get_entity_id(DOMAIN, DOMAIN, input_id) is not None
 
+    test_updated_event = []
+    hass.bus.async_listen(
+        EVENT_ZONE_UPDATED, lambda event: test_updated_event.append(event)
+    )
+
     client = await hass_ws_client(hass)
 
     await client.send_json(
@@ -421,6 +447,8 @@ async def test_update(hass, hass_ws_client, storage_setup):
     )
     resp = await client.receive_json()
     assert resp["success"]
+
+    assert len(test_updated_event) == 1
 
     state = hass.states.get(input_entity_id)
     assert state.attributes["latitude"] == 3
