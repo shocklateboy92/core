@@ -142,5 +142,6 @@ FLOWS = [
     "wled",
     "wwlln",
     "zha",
-    "zwave"
+    "zwave",
+    "zwave_mqtt"
 ]
