@@ -82,8 +82,10 @@ if TYPE_CHECKING:
 block_async_io.enable()
 
 T = TypeVar("T")
+# pylint: disable=invalid-name
 CALLABLE_T = TypeVar("CALLABLE_T", bound=Callable)
 CALLBACK_TYPE = Callable[[], None]
+# pylint: enable=invalid-name
 
 CORE_STORAGE_KEY = "core.config"
 CORE_STORAGE_VERSION = 1
