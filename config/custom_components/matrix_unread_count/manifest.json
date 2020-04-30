@@ -1,0 +1,10 @@
+{
+  "domain": "matrix_unread_count",
+  "name": "Matrix Unread Message Count Sensor",
+  "documentation": "https://github.com/home-assistant/example-custom-config/tree/master/custom_components/example_sensor/",
+  "dependencies": [],
+  "codeowners": [],
+  "requirements": [
+    "matrix-nio==0.10.0"
+  ]
+}
