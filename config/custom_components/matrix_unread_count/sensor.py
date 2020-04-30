@@ -1,4 +1,6 @@
 """Platform for sensor integration."""
+import logging
+
 import voluptuous as vol
 
 from homeassistant.components.sensor import PLATFORM_SCHEMA
@@ -8,16 +10,20 @@ from homeassistant.helpers.entity import Entity
 
 from .const import *
 
+_LOGGER = logging.getLogger(__name__)
+
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         vol.Required(CONF_NAME): cv.string,
-        vol.Required(CONF_ID): cv.valid_entity_id,
-        vol.Optional(CONF_ROOM_PATTERN): cv.is_regex
+        vol.Optional(CONF_ID): cv.string, # Turns out there isn't one for entity id compatible string
+        vol.Required(CONF_ROOM_PATTERN): cv.is_regex
     }
 )
 
 def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up the sensor platform."""
+    
+    _LOGGER.debug(config)
     add_entities([ExampleSensor()])
 
 
